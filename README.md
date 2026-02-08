@@ -87,7 +87,7 @@ pip install numpy matplotlib
 Run the script:
 
 ```bash
-python beam_analysis_tool.py
+python Beam_Analysis_Tool.py
 ```
 
 ---
