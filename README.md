@@ -1,6 +1,8 @@
 # Beam Analysis Tool
 Numerical beam analysis tool built using Python for structural engineering calculations.
 
+Python | Engineering Simulation | Structural Analysis
+
 **Developed by:** Monjyeeman Dutta
 
 ---
@@ -13,6 +15,8 @@ The tool computes reaction forces, generates Shear Force Diagrams (SFD) and Bend
 
 This project demonstrates the integration of mechanical engineering principles with programming to create a practical analysis utility.
 
+
+Designed and implemented as part of a self-driven engineering software initiative.
 ---
 
 ## Features
@@ -60,7 +64,7 @@ pip install -r requirements.txt
 
 ---
 
-## Why This Project Matters?
+## Engineering Objectives 
 
 This tool was built to bridge theoretical mechanics with computational problem-solving.
 It reflects an early effort toward engineering automation and analytical tool development.
@@ -77,12 +81,6 @@ It reflects an early effort toward engineering automation and analytical tool de
 ---
 
 ## How to Run
-
-Install dependencies:
-
-```bash
-pip install numpy matplotlib
-```
 
 Run the script:
 
