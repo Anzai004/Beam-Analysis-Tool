@@ -1,4 +1,5 @@
 # Beam Analysis Tool
+Numerical beam analysis tool built using Python for structural engineering calculations.
 
 **Developed by:** Monjyeeman Dutta
 
