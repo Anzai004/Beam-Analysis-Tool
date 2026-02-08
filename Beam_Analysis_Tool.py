@@ -1,5 +1,5 @@
 """
-Beam Analysis Tool v2
+Beam Analysis Tool
 Developer: Monjyeeman Dutta
 
 A computational mechanics tool for analyzing simply supported beams.
@@ -364,4 +364,5 @@ def main():
     print("\nAnalysis Complete.")   
     
 if __name__ == "__main__":
+
     main()
