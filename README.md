@@ -30,6 +30,19 @@ This project demonstrates the integration of mechanical engineering principles w
 
 ---
 
+## Requirements
+- Python 3.10+
+
+---
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
 ## Technologies Used
 
 * Python
