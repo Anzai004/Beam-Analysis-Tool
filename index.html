@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BeamLab — Beam Analysis Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0f11;
+      --surface: #161719;
+      --surface2: #1e2024;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+      --text: #e8e8e6;
+      --text-muted: #7a7a78;
+      --text-dim: #4a4a48;
+      --accent: #c8c8c4;
+      --white: #f0f0ee;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 280px 1fr 220px;
+      grid-template-rows: 44px 1fr;
+      width: 100%;
+      max-width: 1100px;
+      height: 720px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    /* TOP BAR */
+    .topbar {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .topbar-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--white);
+      text-transform: uppercase;
+    }
+    .topbar-sub { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .topbar-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+    .topbar-dot.live {
+      background: #8a8a86;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .topbar-status {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+    .topbar-credit {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      grid-row: 2;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      padding: 4px 2px 6px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2px;
+    }
+
+    .field-row { display: flex; flex-direction: column; gap: 4px; }
+    .field-row label { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
+
+    .field-inline { display: flex; gap: 6px; align-items: center; }
+    .field-inline input, .field-inline select {
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-inline input:focus, .field-inline select:focus {
+      border-color: rgba(255,255,255,0.35);
+    }
+    .field-inline select { flex: 0 0 auto; min-width: 68px; }
+    .field-inline input { flex: 1; min-width: 0; }
+
+    .radio-group {
+      display: flex;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .radio-group input[type=radio] { display: none; }
+    .radio-group label {
+      flex: 1;
+      text-align: center;
+      padding: 6px 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border2);
+      transition: background 0.15s, color 0.15s;
+    }
+    .radio-group label:last-child { border-right: none; }
+    .radio-group input[type=radio]:checked + label {
+      background: rgba(255,255,255,0.1);
+      color: var(--white);
+    }
+
+    .slider-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .slider-wrap input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      outline: none;
+    }
+    .slider-wrap input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: var(--white);
+      cursor: pointer;
+    }
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .analyze-btn {
+      width: 100%;
+      background: var(--white);
+      color: #0e0f11;
+      border: none;
+      border-radius: 4px;
+      padding: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      text-transform: uppercase;
+      margin-top: 4px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .analyze-btn:hover { opacity: 0.85; }
+    .analyze-btn:active { opacity: 0.7; transform: scale(0.98); }
+
+    /* MAIN PLOT AREA */
+    .main {
+      grid-row: 2;
+      background: var(--bg);
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .plot-tabs {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .plot-tab {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: background 0.12s, color 0.12s;
+    }
+    .plot-tab:last-child { border-right: none; }
+    .plot-tab.active {
+      background: rgba(255,255,255,0.07);
+      color: var(--white);
+    }
+
+    .canvas-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      flex: 1;
+      min-height: 340px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    #mainChart { display: none; }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-dim);
+    }
+    .empty-state svg { opacity: 0.5; }
+    .empty-state p {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* RESULTS PANEL */
+    .results-panel {
+      grid-row: 2;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+
+    .metric-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .metric-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .metric-value {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1;
+    }
+    .metric-unit {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 3px;
+    }
+    .metric-sub {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 3px;
+      margin-top: 5px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+    }
+    .status-badge.ok  { background: rgba(140,200,140,0.12); color: #8fc88f; }
+    .status-badge.warn { background: rgba(220,160,80,0.15); color: #d4a055; }
+
+    .log-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--text-muted);
+      line-height: 1.75;
+      flex: 1;
+      min-height: 100px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .log-ok   { color: #8fc88f; }
+    .log-warn { color: #d4a055; }
+    .log-err  { color: #c87070; }
+    .log-info { color: var(--text-muted); }
+
+    input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
+    input::placeholder { color: var(--text-dim); opacity: 1; }
+
+    /* STATUS COLOURS */
+    .status-ready   { color: #6b9fd4; }
+    .status-loading { color: #d4a055; }
+    .status-done    { color: #8fc88f; }
+    .status-error   { color: #c87070; }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      body { padding: 0; align-items: flex-start; }
+      .shell {
+        grid-template-columns: 240px 1fr;
+        grid-template-rows: 44px auto auto;
+        height: auto;
+        min-height: 100vh;
+        border-radius: 0;
+        border: none;
+      }
+      .topbar { grid-column: 1 / -1; }
+      .sidebar { grid-row: 2; grid-column: 1; border-right: 1px solid var(--border); border-bottom: none; }
+      .main { grid-row: 2; grid-column: 2; }
+      .results-panel {
+        grid-row: 3;
+        grid-column: 1 / -1;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+        padding: 12px;
+      }
+      .results-panel .section-label { grid-column: 1 / -1; }
+      .results-panel .log-box { grid-column: 1 / -1; min-height: 80px; }
+    }
+
+    @media (max-width: 600px) {
+      .shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: 44px auto auto auto;
+      }
+      .sidebar { grid-row: 2; grid-column: 1; border-right: none; border-bottom: 1px solid var(--border); }
+      .main { grid-row: 3; grid-column: 1; }
+      .results-panel { grid-row: 4; grid-column: 1; }
+      .plot-tabs { flex-wrap: wrap; }
+      .plot-tab { min-width: 33%; font-size: 9px; padding: 7px 4px; }
+      .topbar-credit { display: none; }
+      .canvas-wrap { min-height: 260px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-title">BeamLab</div>
+    <div class="topbar-sub">/ structural analysis</div>
+    <div class="topbar-right">
+      <div class="topbar-credit">Monjyeeman Dutta</div>
+      <div class="topbar-dot live"></div>
+      <div class="topbar-status status-ready" id="statusText">READY</div>
+    </div>
+  </div>
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="section-label">Beam Properties</div>
+
+    <div class="field-row">
+      <label>Beam Length</label>
+      <div class="field-inline">
+        <input type="number" id="L" placeholder="5" min="0.01" step="0.1">
+        <select id="Lunits">
+          <option value="1">m</option>
+          <option value="2">mm</option>
+          <option value="3">cm</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label>Young's Modulus (E)</label>
+      <div class="field-inline">
+        <input type="number" id="E" placeholder="200" min="0.001" step="1">
+        <select id="Eunits">
+          <option value="1">GPa</option>
+          <option value="2">MPa</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label>Moment of Inertia (I)</label>
+      <div class="field-inline">
+        <input type="number" id="I" placeholder="8333333" min="0.001">
+        <select id="Iunits">
+          <option value="1">mm⁴</option>
+          <option value="2">m⁴</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:4px">Load Type</div>
+    <div class="radio-group">
+      <input type="radio" name="loadType" id="ltPL" value="1" checked>
+      <label for="ltPL">Point Load</label>
+      <input type="radio" name="loadType" id="ltUDL" value="2">
+      <label for="ltUDL">UDL</label>
+    </div>
+
+    <div id="plFields">
+      <div class="field-row" style="margin-top:2px">
+        <label>Load Magnitude (P)</label>
+        <div class="field-inline">
+          <input type="number" id="P" placeholder="10" step="0.1">
+          <select id="Punits">
+            <option value="2">kN</option>
+            <option value="1">N</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Load Position from LHS</label>
+        <div class="field-inline">
+          <input type="number" id="a" placeholder="2" min="0.01" step="0.1">
+          <select id="aunits">
+            <option value="1">m</option>
+            <option value="2">mm</option>
+            <option value="3">cm</option>
+          </select>
+        </div>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="aSlider" min="1" max="99" value="40" step="1">
+        <div class="slider-label">
+          <span>LHS</span>
+          <span id="sliderPct">40%</span>
+          <span>RHS</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="udlFields" style="display:none">
+      <div class="field-row" style="margin-top:2px">
+        <label>Load Intensity (w)</label>
+        <div class="field-inline">
+          <input type="number" id="w" placeholder="5" min="0.001" step="0.1">
+          <select id="wunits">
+            <option value="2">kN/m</option>
+            <option value="1">N/m</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="analyze-btn" onclick="runAnalysis()">▶ Run Analysis</button>
+  </div>
+
+  <!-- MAIN PLOT AREA -->
+  <div class="main">
+    <div class="plot-tabs">
+      <div class="plot-tab active" onclick="switchTab(0)" id="tab0">SFD — Shear Force</div>
+      <div class="plot-tab" onclick="switchTab(1)" id="tab1">BMD — Bending Moment</div>
+      <div class="plot-tab" onclick="switchTab(2)" id="tab2">Deflection Curve</div>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="empty-state" id="emptyState">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <p>Enter parameters and run analysis</p>
+      </div>
+      <canvas id="mainChart"></canvas>
+    </div>
+  </div>
+
+  <!-- RESULTS SIDEBAR -->
+  <div class="results-panel">
+    <div class="section-label">Results</div>
+
+    <div class="metric-card">
+      <div class="metric-label">Left Reaction (R₁)</div>
+      <div class="metric-value" id="r1Val">—<span class="metric-unit"></span></div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Right Reaction (R₂)</div>
+      <div class="metric-value" id="r2Val">—<span class="metric-unit"></span></div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Max Bending Moment</div>
+      <div class="metric-value" id="bmVal">—<span class="metric-unit"></span></div>
+      <div class="metric-sub" id="bmPos"></div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Max Deflection</div>
+      <div class="metric-value" id="defVal">—<span class="metric-unit"></span></div>
+      <div id="servBadge" class="status-badge">—</div>
+    </div>
+
+    <div class="section-label" style="margin-top:4px">Log</div>
+    <div class="log-box" id="logBox">BeamLab v2 ready.
+Enter beam parameters and press RUN ANALYSIS.</div>
+  </div>
+
+</div>
+
+<script>
+  let chart = null;
+  let currentTab = 0;
+  let lastData = null;
+  const N = 400;
+
+  function linspace(a, b, n) {
+    const arr = [];
+    for (let i = 0; i < n; i++) arr.push(a + (b - a) * i / (n - 1));
+    return arr;
+  }
+
+  function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+  function getUnit(id) { return parseInt(document.getElementById(id).value); }
+  function convertLength(v, u) { return u === 1 ? v : u === 2 ? v / 1000 : v / 100; }
+  function convertE(v, u) { return u === 1 ? v * 1e9 : v * 1e6; }
+  function convertI(v, u) { return u === 1 ? v * 1e-12 : v; }
+  function convertLoad(v, u) { return u === 1 ? v : v * 1000; }
+  function convertUDL(v, u) { return u === 1 ? v : v * 1000; }
+  function axisX(x, u) { return u === 1 ? x : u === 2 ? x.map(v => v * 1000) : x.map(v => v * 100); }
+  function xLabel(u) { return u === 1 ? 'm' : u === 2 ? 'mm' : 'cm'; }
+
+  function log(msg, type = 'info') {
+    const box = document.getElementById('logBox');
+    const cls = { ok:'log-ok', warn:'log-warn', err:'log-err', info:'log-info' }[type] || 'log-info';
+    box.innerHTML += `\n<span class="${cls}">${msg}</span>`;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  document.querySelectorAll('input[name=loadType]').forEach(r => {
+    r.addEventListener('change', () => {
+      const v = document.querySelector('input[name=loadType]:checked').value;
+      document.getElementById('plFields').style.display = v === '1' ? '' : 'none';
+      document.getElementById('udlFields').style.display = v === '2' ? '' : 'none';
+    });
+  });
+
+  const aSlider = document.getElementById('aSlider');
+  aSlider.addEventListener('input', function() {
+    document.getElementById('sliderPct').textContent = this.value + '%';
+    const L = getVal('L');
+    document.getElementById('a').value = (L * this.value / 100).toFixed(3);
+  });
+  document.getElementById('a').addEventListener('input', function() {
+    const L = getVal('L');
+    const a = parseFloat(this.value) || 0;
+    if (L > 0) {
+      const pct = Math.min(99, Math.max(1, Math.round((a / L) * 100)));
+      aSlider.value = pct;
+      document.getElementById('sliderPct').textContent = pct + '%';
+    }
+  });
+
+  function switchTab(idx) {
+    currentTab = idx;
+    document.querySelectorAll('.plot-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+    if (lastData) renderPlot(lastData, idx);
+  }
+
+  function getChartOptions(xlabel, ylabel) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 500, easing: 'easeInOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1e2024',
+          borderColor: 'rgba(255,255,255,0.12)',
+          borderWidth: 1,
+          titleColor: '#e8e8e6',
+          bodyColor: '#7a7a78',
+          titleFont: { family: 'JetBrains Mono', size: 11 },
+          bodyFont: { family: 'JetBrains Mono', size: 10 },
+          callbacks: {
+            label: ctx => `  ${ctx.parsed.y.toFixed(4)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: xlabel, color: '#4a4a48', font: { family: 'JetBrains Mono', size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#4a4a48', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 8 }
+        },
+        y: {
+          title: { display: true, text: ylabel, color: '#4a4a48', font: { family: 'JetBrains Mono', size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#4a4a48', font: { family: 'JetBrains Mono', size: 9 } }
+        }
+      }
+    };
+  }
+
+  function renderPlot(d, tab) {
+    const canvas = document.getElementById('mainChart');
+    document.getElementById('emptyState').style.display = 'none';
+    canvas.style.display = 'block';
+    if (chart) { chart.destroy(); chart = null; }
+
+    let xs, ys, xlabel, ylabel;
+    if (tab === 0) {
+      xs = d.xPlot; ys = d.V;
+      xlabel = `Position (${xLabel(d.Lunits)})`;
+      ylabel = 'Shear Force (N)';
+    } else if (tab === 1) {
+      xs = d.xPlot; ys = d.M;
+      xlabel = `Position (${xLabel(d.Lunits)})`;
+      ylabel = 'Bending Moment (Nm)';
+    } else {
+      xs = d.xPlot; ys = d.deflMM;
+      xlabel = `Position (${xLabel(d.Lunits)})`;
+      ylabel = 'Deflection (mm)';
+    }
+
+    const pts = xs.map((x, i) => ({ x: parseFloat(x.toFixed(5)), y: parseFloat(ys[i].toFixed(6)) }));
+    const opts = getChartOptions(xlabel, ylabel);
+    if (tab === 2) opts.scales.y.reverse = true;
+
+    chart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        datasets: [{
+          data: pts,
+          borderColor: 'rgba(220,220,216,0.9)',
+          borderWidth: 1.5,
+          fill: { target: { value: 0 }, above: 'rgba(220,220,216,0.06)', below: 'rgba(220,220,216,0.06)' },
+          pointRadius: 0,
+          tension: 0.01
+        }]
+      },
+      options: opts
+    });
+  }
+
+  function runAnalysis() {
+    document.getElementById('logBox').textContent = '';
+    log('▶  Running analysis...', 'info');
+    const st = document.getElementById('statusText');
+    st.textContent = 'LOADING';
+    st.className = 'topbar-status status-loading';
+
+    const Lu = getUnit('Lunits');
+    const Eu = getUnit('Eunits');
+    const Iu = getUnit('Iunits');
+    const L = convertLength(getVal('L'), Lu);
+    const E = convertE(getVal('E'), Eu);
+    const I = convertI(getVal('I'), Iu);
+    const loadType = parseInt(document.querySelector('input[name=loadType]:checked').value);
+
+    log(`  L = ${L.toExponential(3)} m`, 'info');
+    log(`  E = ${E.toExponential(3)} Pa`, 'info');
+    log(`  I = ${I.toExponential(3)} m⁴`, 'info');
+    if (I < 1e-14) log('  ⚠ I is extremely small — check units', 'warn');
+
+    const LIMIT = L * 1000 / 250;
+    const x = linspace(0, L, N);
+    const xPlot = axisX(x, Lu);
+
+    let R1, R2, V, M, deflMM, maxBM, maxBMPos, maxDefl;
+
+    if (loadType === 1) {
+      const Pu = getUnit('Punits');
+      const au = getUnit('aunits');
+      const P = convertLoad(getVal('P'), Pu);
+      const a = convertLength(getVal('a'), au);
+
+      if (a <= 0 || a >= L) {
+        log('  ✗ Load position must be strictly between 0 and L', 'err');
+        st.textContent = 'ERROR';
+        st.className = 'topbar-status status-error';
+        return;
+      }
+
+      const b = L - a;
+      R1 = P * b / L;
+      R2 = P * a / L;
+
+      V = x.map(xi => xi < a ? R1 : R1 - P);
+      M = x.map(xi => xi < a ? R1 * xi : R1 * xi - P * (xi - a));
+      const defl = x.map(xi => {
+        if (xi < a) return (P * b * xi / (6 * L * E * I)) * (L * L - b * b - xi * xi);
+        return (P * a * (L - xi) / (6 * L * E * I)) * (L * L - a * a - (L - xi) * (L - xi));
+      });
+      deflMM = defl.map(v => v * 1000);
+
+      maxBM = Math.max(...M);
+      maxBMPos = x[M.indexOf(maxBM)];
+      maxDefl = Math.max(...deflMM.map(Math.abs));
+
+      log(`  P = ${P.toFixed(1)} N  at a = ${a.toFixed(3)} m`, 'info');
+
+    } else {
+      const wu = getUnit('wunits');
+      const w = convertUDL(getVal('w'), wu);
+      R1 = R2 = w * L / 2;
+
+      V = x.map(xi => R1 - w * xi);
+      M = x.map(xi => R1 * xi - (w * xi * xi) / 2);
+      const defl = x.map(xi => (w * xi * (L * L * L - 2 * L * xi * xi + xi * xi * xi)) / (24 * E * I));
+      deflMM = defl.map(v => v * 1000);
+
+      maxBM = Math.max(...M);
+      maxBMPos = L / 2;
+      maxDefl = (5 * w * Math.pow(L, 4)) / (384 * E * I) * 1000;
+
+      log(`  w = ${w.toFixed(2)} N/m (full span UDL)`, 'info');
+    }
+
+    document.getElementById('r1Val').innerHTML = `${R1.toFixed(2)}<span class="metric-unit">N</span>`;
+    document.getElementById('r2Val').innerHTML = `${R2.toFixed(2)}<span class="metric-unit">N</span>`;
+    document.getElementById('bmVal').innerHTML = `${maxBM.toFixed(2)}<span class="metric-unit">Nm</span>`;
+    document.getElementById('bmPos').textContent = `at x = ${maxBMPos.toFixed(3)} m`;
+    document.getElementById('defVal').innerHTML = `${maxDefl.toFixed(3)}<span class="metric-unit">mm</span>`;
+
+    const badge = document.getElementById('servBadge');
+    if (maxDefl < 0.001) {
+      badge.textContent = 'Negligible'; badge.className = 'status-badge';
+    } else if (maxDefl > LIMIT) {
+      badge.textContent = '⚠ Exceeds L/250'; badge.className = 'status-badge warn';
+      log(`  ⚠ Deflection ${maxDefl.toFixed(3)} mm > L/250 = ${LIMIT.toFixed(3)} mm`, 'warn');
+    } else {
+      badge.textContent = '✓ Within L/250'; badge.className = 'status-badge ok';
+      log(`  ✓ Deflection within L/250 serviceability limit`, 'ok');
+    }
+
+    log(`  R1 = ${R1.toFixed(3)} N  |  R2 = ${R2.toFixed(3)} N`, 'ok');
+    log(`  Max BM  = ${maxBM.toFixed(3)} Nm  at x = ${maxBMPos.toFixed(3)} m`, 'ok');
+    log(`  Max δ   = ${maxDefl.toFixed(4)} mm`, 'ok');
+    log('  Analysis complete.', 'ok');
+
+    st.textContent = 'DONE';
+    st.className = 'topbar-status status-done';
+    lastData = { xPlot, V, M, deflMM, Lunits: Lu };
+    renderPlot(lastData, currentTab);
+  }
+</script>
+</body>
+</html>
