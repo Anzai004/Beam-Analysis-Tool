@@ -2,6 +2,8 @@
 
 **Developed by:** Monjyeeman Dutta
 
+🔗 **[Live Demo](https://anzai004.github.io/Beam-Analysis-Tool/)**
+
 ---
 
 ## Overview
@@ -44,11 +46,13 @@ The tool computes reaction forces, generates Shear Force Diagrams (SFD) and Bend
 - Structural Serviceability Criteria
 
 ---
+
 ## Sample Output
 
 ![SFD Output](assets/sample_output_sfd.png)
 ![BMD Output](assets/sample_output_bmd.png)
 ![Deflection Output](assets/sample_output_deflection.png)
+
 ---
 
 ## Example
@@ -67,6 +71,8 @@ The tool computes reaction forces, generates Shear Force Diagrams (SFD) and Bend
 
 ## How to Run
 
+**GUI:** Visit the [live demo](https://anzai004.github.io/Beam-Analysis-Tool/) — no install required.
+
 **Python CLI:**
 
 Install dependencies:
@@ -81,17 +87,11 @@ Run the script:
 python beam_analysis_tool.py
 ```
 
-**GUI (browser-based):**
-
-Open `index.html` directly in any browser. No install required — Chart.js loads from CDN on first use.
-
 ---
 
 ## Extended Work
 
-This tool informed the development of MechAssist — a full engineering decision support application integrating ML-based stress classification and machinability prediction.
-
-[MechAssist](https://github.com/Anzai004/MechAssist)
+This tool informed the development of [MechAssist](https://github.com/Anzai004/MechAssist) — a full engineering decision support application integrating ML-based stress classification and machinability prediction.
 
 ---
 
